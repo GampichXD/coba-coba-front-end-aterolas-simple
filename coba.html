@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASV Monitoring Dashboard</title>
+    <style>
+        /* CSS Variables for Theming */
+        :root {
+            --bg-color: #FFF8F8;
+            --card-bg-color: #E9DFC3;
+            --text-color: #0118D8;
+            --primary-blue: #1B56FD;
+            --dark-blue: #0118D8;
+            --card-border: rgba(1, 24, 216, 0.1);
+            --shadow-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .dark-mode {
+            --bg-color: #0d1a4b;
+            --card-bg-color: #0118D8;
+            --text-color: #FFF8F8;
+            --primary-blue: #1B56FD;
+            --dark-blue: #FFF8F8;
+            --card-border: rgba(27, 86, 253, 0.5);
+            --shadow-color: rgba(0, 0, 0, 0.4);
+        }
+
+        /* General Styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* Mencegah scroll */
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Navbar */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: var(--card-bg-color);
+            border-bottom: 2px solid var(--card-border);
+            flex-shrink: 0;
+        }
+
+        .navbar-left, .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .navbar-left img {
+            height: 40px;
+        }
+        
+        .navbar-center h1 {
+            font-size: 1.8em;
+            color: var(--primary-blue);
+            font-weight: 700;
+        }
+
+        .navbar-right .info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1em;
+        }
+        
+        .navbar-right svg {
+            fill: var(--text-color);
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Night Mode Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        .switch input { display: none; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px; width: 18px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--primary-blue); }
+        input:checked + .slider:before { transform: translateX(26px); }
+
+        /* Main Content Grid */
+        .main-content {
+            flex-grow: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .card {
+            background-color: var(--card-bg-color);
+            border-radius: 15px;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 4px 15px var(--shadow-color);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow: hidden;
+        }
+
+        .card h2 {
+            margin-bottom: 10px;
+            color: var(--primary-blue);
+            border-bottom: 2px solid var(--primary-blue);
+            padding-bottom: 5px;
+        }
+        
+        /* Card Specific Styles */
+
+        /* Card 1: General Info */
+        .card-general { display: flex; flex-direction: row; gap: 20px; }
+        .model-3d-container {
+            flex-basis: 50%;
+            background-color: rgba(0,0,0,0.1);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-style: italic;
+            color: var(--dark-blue);
+            min-height: 150px;
+        }
+        .ship-info { flex-basis: 50%; overflow-y: auto; }
+        .ship-info h3 { margin-top: 10px; }
+        .ship-info p { font-size: 0.9em; }
+
+        /* Card 2: Sensor Monitoring */
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .sensor-item {
+            background: var(--bg-color);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .sensor-item .value { font-weight: bold; font-size: 1.2em; color: var(--primary-blue); }
+        .chart-container {
+            flex-grow: 1;
+            position: relative;
+        }
+
+        /* Card 3: Computer Vision */
+        .card-cv { display: flex; flex-direction: row; gap: 20px; }
+        .cv-left { flex-basis: 60%; display: flex; flex-direction: column; gap: 10px; }
+        .video-stream {
+            flex-grow: 1;
+            background-color: #000;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 10px;
+        }
+        .cv-counters { display: flex; justify-content: space-around; text-align: center; }
+        .counter .count { font-size: 1.5em; font-weight: bold; color: var(--primary-blue); }
+        .cv-right { flex-basis: 40%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .photo-thumbnail {
+            background-color: rgba(0,0,0,0.1);
+            border-radius: 8px;
+            background-size: cover;
+            background-position: center;
+        }
+        .photo-thumbnail:nth-child(1) { background-image: url('https://placehold.co/200x200/1B56FD/FFF8F8?text=Foto+1'); }
+        .photo-thumbnail:nth-child(2) { background-image: url('https://placehold.co/200x200/1B56FD/FFF8F8?text=Foto+2'); }
+        .photo-thumbnail:nth-child(3) { background-image: url('https://placehold.co/200x200/1B56FD/FFF8F8?text=Foto+3'); }
+        .photo-thumbnail:nth-child(4) { background-image: url('https://placehold.co/200x200/1B56FD/FFF8F8?text=Foto+4'); }
+
+
+        /* Card 4: Trajectory */
+        .trajectory-controls { text-align: center; margin-bottom: 10px; }
+        .trajectory-controls button {
+            padding: 8px 16px;
+            border: 2px solid var(--primary-blue);
+            background-color: transparent;
+            color: var(--primary-blue);
+            border-radius: 20px;
+            cursor: pointer;
+            margin: 0 5px;
+            font-weight: bold;
+        }
+        .trajectory-controls button.active {
+            background-color: var(--primary-blue);
+            color: var(--bg-color);
+        }
+        .trajectory-maps {
+            flex-grow: 1;
+            display: flex;
+            gap: 20px;
+        }
+        .map-container {
+            flex-basis: 50%;
+            border-radius: 10px;
+            background-color: rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-style: italic;
+            color: var(--dark-blue);
+            background-size: cover;
+            background-position: center;
+        }
+        #gmaps-container {
+            background-image: url('https://i.imgur.com/3Z6K5h5.png'); /* Placeholder Peta GMaps */
+        }
+        #arena-container {
+             background-image: url('https://i.imgur.com/rQ0oJc2.png'); /* Placeholder Peta Arena */
+        }
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="navbar-left">
+            <img src="https://i.imgur.com/aC32a1f.png" alt="Logo Kapal"> <img src="https://i.imgur.com/s6t24as.png" alt="Logo Institusi"> </div>
+        <div class="navbar-center">
+            <h1>ATEROLAS</h1>
+        </div>
+        <div class="navbar-right">
+            <div class="info-item">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M215.7 499.2C267 435 384 279.4 384 192C384 86 298 0 192 0S0 86 0 192c0 87.4 117 243 168.3 307.2c12.3 15.3 35.1 15.3 47.4 0zM192 128a64 64 0 1 1 0 128 64 64 0 1 1 0-128z"/></svg>
+                <span id="location">Semarang, ID</span>
+            </div>
+            <div class="info-item">
+                <span id="date">22 Sep 2025</span>
+            </div>
+            <div class="info-item">
+                <span id="time">19:02:25</span>
+            </div>
+             <label class="switch">
+                <input type="checkbox" id="nightModeToggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="card card-general">
+            <div class="model-3d-container">
+                Model 3D Interaktif Kapal
+            </div>
+            <div class="ship-info">
+                <h2>Informasi Umum</h2>
+                <h3>Sejarah & Inspirasi</h3>
+                <p>ATEROLAS adalah generasi keempat dari Autonomous Surface Vehicle yang dikembangkan dengan inspirasi dari keuletan Para Staffnya... HIDUP ATERKIA!</p>
+                <h3>Kegunaan Kapal</h3>
+                <p>Didesain untuk misi pengankutan penumpang dan barang-barang tidak besar. Karena yang Maha Besar cuma Allah SWT</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Monitoring Sensor & Performa</h2>
+            <div class="sensor-grid">
+                <div class="sensor-item">
+                    <span>Baterai</span>
+                    <div id="sensor-battery" class="value">98.5 V</div>
+                </div>
+                <div class="sensor-item">
+                    <span>Kecepatan</span>
+                    <div id="sensor-speed" class="value">5.2 knot</div>
+                </div>
+                <div class="sensor-item">
+                    <span>Suhu Motor</span>
+                    <div id="sensor-temp" class="value">45 °C</div>
+                </div>
+                <div class="sensor-item">
+                    <span>GPS Fix</span>
+                    <div id="sensor-gps" class="value">3D FIX</div>
+                </div>
+                 <div class="sensor-item">
+                    <span>Jarak Halang</span>
+                    <div id="sensor-lidar" class="value">12 m</div>
+                </div>
+                 <div class="sensor-item">
+                    <span>Heading</span>
+                    <div id="sensor-heading" class="value">182°</div>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="sensorChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card card-cv">
+            <div class="cv-left">
+                 <h2>Computer Vision</h2>
+                <div class="video-stream">
+                    LIVE-STREAMING ISHOWSPEED ENAK KALI YA
+                </div>
+                <div class="cv-counters">
+                    <div class="counter">
+                        <span style="color: red;">🔴</span>
+                        <div>Buoy Merah</div>
+                        <div id="buoy-red" class="count">0</div>
+                    </div>
+                    <div class="counter">
+                        <span style="color: green;">🟢</span>
+                        <div>Buoy Hijau</div>
+                        <div id="buoy-green" class="count">0</div>
+                    </div>
+                    <div class="counter">
+                        <span>🏁</span>
+                        <div>Track</div>
+                        <div id="track-num" class="count">1</div>
+                    </div>
+                </div>
+            </div>
+            <div class="cv-right">
+                <div class="photo-thumbnail"></div>
+                <div class="photo-thumbnail"></div>
+                <div class="photo-thumbnail"></div>
+                <div class="photo-thumbnail"></div>
+            </div>
+        </div>
+        
+        <div class="card">
+             <h2>Trajectory & Pemetaan</h2>
+             <div class="trajectory-controls">
+                 <button id="btn-track-a" class="active">Lintasan A</button>
+                 <button id="btn-track-b">Lintasan B</button>
+             </div>
+             <div class="trajectory-maps">
+                <div class="map-container" id="gmaps-container">
+                    GMaps Real-Time Position
+                </div>
+                <div class="map-container" id="arena-container">
+                     Arena Trajectory Animation
+                </div>
+             </div>
+        </div>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Logika Jam & Tanggal Real-time
+            const timeEl = document.getElementById('time');
+            const dateEl = document.getElementById('date');
+            
+            function updateTime() {
+                const now = new Date();
+                timeEl.textContent = now.toLocaleTimeString('en-GB');
+                dateEl.textContent = now.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+            }
+            setInterval(updateTime, 1000);
+            updateTime();
+
+            // 2. Logika Night Mode Toggle
+            const nightModeToggle = document.getElementById('nightModeToggle');
+            nightModeToggle.addEventListener('change', () => {
+                document.body.classList.toggle('dark-mode');
+            });
+
+            // 3. Logika Grafik Sensor (Data Random)
+            const ctx = document.getElementById('sensorChart').getContext('2d');
+            const sensorChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array(30).fill(''),
+                    datasets: [{
+                        label: 'Baterai (V)',
+                        data: Array(30).fill(98),
+                        borderColor: '#FF6384',
+                        tension: 0.3,
+                        borderWidth: 2,
+                        pointRadius: 0,
+                    }, {
+                        label: 'Kecepatan (knot)',
+                        data: Array(30).fill(5),
+                        borderColor: '#36A2EB',
+                        tension: 0.3,
+                        borderWidth: 2,
+                        pointRadius: 0,
+                    },{
+                        label: 'Suhu (°C)',
+                        data: Array(30).fill(45),
+                        borderColor: '#FFCE56',
+                        tension: 0.3,
+                        borderWidth: 2,
+                        pointRadius: 0,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: false },
+                        x: { display: false }
+                    },
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
+                }
+            });
+
+            // Update grafik dan nilai sensor setiap detik
+            setInterval(() => {
+                // Update Nilai Sensor
+                document.getElementById('sensor-battery').textContent = (98 + Math.random() * 2 - 1).toFixed(1) + ' V';
+                document.getElementById('sensor-speed').textContent = (5 + Math.random() * 2 - 1).toFixed(1) + ' knot';
+                document.getElementById('sensor-temp').textContent = Math.floor(45 + Math.random() * 5 - 2) + ' °C';
+                document.getElementById('sensor-lidar').textContent = (12 + Math.random() * 4 - 2).toFixed(1) + ' m';
+                document.getElementById('sensor-heading').textContent = Math.floor(182 + Math.random() * 10 - 5) + '°';
+
+
+                // Update data grafik
+                sensorChart.data.datasets.forEach(dataset => {
+                    const lastValue = dataset.data[dataset.data.length - 1];
+                    const newValue = lastValue + (Math.random() * (dataset.label.includes('Baterai') ? 0.2 : 1) - (dataset.label.includes('Baterai') ? 0.1 : 0.5));
+                    dataset.data.push(newValue);
+                    dataset.data.shift();
+                });
+                sensorChart.update('quiet');
+            }, 1000);
+
+            // 4. Logika Tombol Trajectory
+            const btnA = document.getElementById('btn-track-a');
+            const btnB = document.getElementById('btn-track-b');
+            btnA.addEventListener('click', () => {
+                btnA.classList.add('active');
+                btnB.classList.remove('active');
+                // Tambahkan logika untuk mengganti peta/lintasan di sini
+            });
+            btnB.addEventListener('click', () => {
+                btnB.classList.add('active');
+                btnA.classList.remove('active');
+                // Tambahkan logika untuk mengganti peta/lintasan di sini
+            });
+        });
+    </script>
+</body>
+</html>
